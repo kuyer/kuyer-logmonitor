@@ -1,0 +1,25 @@
+{
+	"host": {
+		"name": "kuyer.github.io",
+		"ip": "192.168.56.101",
+		"applications": [{
+			"name": "user-service",
+			"alias": "用户服务",
+			"port": 8282,
+			"version": "2.1.18",
+			"logPaths": [
+				"/var/log/user-service/access.log",
+				"/var/log/user-service/application.log"
+			]
+		},{
+			"name": "order-service",
+			"alias": "订单服务",
+			"port": 8383,
+			"version": "5.10.21",
+			"logPaths": [
+				"/var/log/order-service/access.log",
+				"/var/log/order-service/application.log"
+			]
+		}]
+	}
+}
