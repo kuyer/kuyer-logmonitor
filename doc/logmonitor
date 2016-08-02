@@ -1,0 +1,102 @@
+#!/bin/sh
+#
+# logmonitor - this script starts and stops the logmonitor daemon
+#
+# chkconfig:   - 85 15
+# description:  logmonitor
+# processname: logmonitor
+# pidfile:     /usr/local/logmonitor/logmonitor.pid
+########java1.8
+#JAVA_HOME='/usr/local/jdk'
+#CLASSPATH="/usr/local/jdk/lib:/usr/local/jdk/jre/lib"
+#PATH=$JAVA_HOME/bin:$PATH
+#export JAVA_HOME CLASSPATH PATH
+source /etc/profile
+
+start(){
+	for pid in ` ps -ef | grep logmonitor | grep -v grep |grep -v "/etc/init.d/logmonitor" | awk '{print $2}'` ;do
+	 kill $pid
+	done
+        rm -rf /usr/local/logmonitor/logmonitor.pid;
+	if [ ! -f /usr/local/logmonitor/logmonitor.pid ]; then
+		WORK_DIR="/usr/local/logmonitor"
+		MAIN_CLASS="net.hubs1.logmonitor.LogMonitorApp"
+		lib="."
+		for jar in $WORK_DIR/lib/*.jar ; do
+			lib=$lib:$jar
+		done
+		#cat /etc/sysconfig/network-scripts/ifcfg-eth1  | grep IPADDR | grep \";
+		#FU=`echo $?`
+		#if [ $FU -eq 0 ]; then
+		#   IPADDRESS=`cat /etc/sysconfig/network-scripts/ifcfg-eth1|grep IPADDR|awk 'BEGIN{FS="\""} {print $2}'` ;
+		#else
+		#   IPADDRESS=`cat /etc/sysconfig/network-scripts/ifcfg-eth1|grep IPADDR|awk 'BEGIN{FS="="} {print $2}'` ;
+		#fi
+		IPADDRESS=`ifconfig | grep "Bcast" | grep "192.168" |awk -F":" '{print $2}' |awk '{print $1}'`
+		nohup java -Xms256m -Xmx256m -classpath $lib $MAIN_CLASS $IPADDRESS >> /dev/null 2>&1 &
+		echo $! > /usr/local/logmonitor/logmonitor.pid
+		echo "starting logmonitor:                                            [  OK  ]"
+	else
+		echo "logmonitor is running:                                            [  OK  ]"
+	fi
+}
+stop(){
+        if [ -f /usr/local/logmonitor/logmonitor.pid ]; then
+		pid=`cat /usr/local/logmonitor/logmonitor.pid`
+		kill -9 $pid
+		rm -rf /usr/local/logmonitor/logmonitor.pid
+		echo "stopping logmonitor:                                            [  OK  ]"
+	else
+		runpid=`ps -ef | grep "/usr/local/logmonitor/lib/aopalliance.jar" | grep -v "grep" |awk -F" " '{print $2}' | head -1`
+                Tr=`echo $?`
+		if [[ $Tr -eq 0 ]]; then
+			echo "logmonitor is stopped:                                            [  OK  ]"
+		else
+			kill -9 $runpid
+			rm -rf /usr/local/logmonitor/logmonitor.pid
+			echo "stopping logmonitor:                                            [  OK  ]"
+		fi
+	fi
+}
+status() {
+if [ -f /usr/local/logmonitor/logmonitor.pid ]; then
+    pid=`cat /usr/local/logmonitor/logmonitor.pid`;
+#    runpid=`ps -ef | grep logmonitor | grep -v "grep" |awk -F" " '{print $2}'`;
+     runpid=`ps -ef | grep "/usr/local/logmonitor/lib/aopalliance.jar" | grep -v "grep" |awk -F" " '{print $2}' | head -1`
+    if [[ $pid = $runpid ]]; then
+       echo "LogMonitor is running"
+    else
+    echo "LogMonitor is stoped"
+    fi
+    else
+    echo "LogMonitor is stoped"
+fi
+}
+restart() {
+	if [ -f /usr/local/logmonitor/logmonitor.pid ]; then
+        	stop
+        	sleep 2
+        	start
+	else 
+		echo "stopping logmonitor:                                            [Failed]"
+		sleep 2
+		start
+	fi
+}
+case "$1" in
+    start)
+        start || exit 0
+        ;;
+    stop)
+        stop || exit 0
+        ;;
+    restart)
+        restart
+        ;;
+    status)
+        status
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|status|restart}"
+        exit 2
+esac
